@@ -14,10 +14,7 @@ import com.example.playground.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 private val TAG = MainActivity::class.simpleName
@@ -28,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     private lateinit var flow: Flow<Int>
+    private lateinit var flow2: Flow<Int>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,13 +58,17 @@ class MainActivity : AppCompatActivity() {
             }
             Log.d(TAG, "End flow")
         }.flowOn(Dispatchers.Default)
+
+        flow2 = flow.map { it*it }
     }
 
     private fun setupClicks() {
         binding.fab.setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
-                flow.collect {
-                    Log.d(TAG, "Collecting $it")
+                flow.zip(flow2) { result1, result2 ->
+                    "$result1 - $result2"
+                }.collect {
+                    Log.d(TAG, it)
                 }
             }
         }
