@@ -11,11 +11,15 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
 import com.example.playground.databinding.ActivityMainBinding
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 private val TAG = MainActivity::class.simpleName
 
@@ -26,6 +30,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var flow: Flow<Int>
     private lateinit var flow2: Flow<Int>
+
+    private lateinit var observable: Observable<Int>
+    private lateinit var observable2: Observable<Int>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +51,7 @@ class MainActivity : AppCompatActivity() {
                 .setAction("Action", null).show()
         }
 
-        setupFlow()
+        setupObservable()
         setupClicks()
     }
 
@@ -59,19 +66,34 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "End flow")
         }.flowOn(Dispatchers.Default)
 
-        flow2 = flow.map { it*it }
+        flow2 = flow.map { it * it }
     }
 
     private fun setupClicks() {
         binding.fab.setOnClickListener {
-            CoroutineScope(Dispatchers.Main).launch {
-                flow.zip(flow2) { result1, result2 ->
-                    "$result1 - $result2"
-                }.collect {
-                    Log.d(TAG, it)
-                }
+//            CoroutineScope(Dispatchers.Main).launch {
+//                flow.zip(flow2) { result1, result2 ->
+//                    "$result1 - $result2"
+//                }.collect {
+//                    Log.d(TAG, it)
+//                }
+//            }
+            Observable.zip(observable, observable2) { result1, result2 ->
+                "$result1 - $result2"
             }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { Log.d(TAG, it) }
         }
+    }
+
+    private fun setupObservable() {
+        observable = Observable.intervalRange(0, 11, 0, 500, TimeUnit.MILLISECONDS)
+            .map { it.toInt() }
+            .doOnNext { Log.d(TAG, "onNext($it)") }
+            .doOnSubscribe { Log.d(TAG, "Start stream") }
+            .doOnComplete { Log.d(TAG, "End stream") }
+            .subscribeOn(Schedulers.computation())
+        observable2 = observable.map { it * it }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
