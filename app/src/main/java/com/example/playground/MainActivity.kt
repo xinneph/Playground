@@ -1,6 +1,7 @@
 package com.example.playground
 
 import android.os.Bundle
+import android.util.Log
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
@@ -10,11 +11,23 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
 import com.example.playground.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
+
+private val TAG = MainActivity::class.simpleName
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+
+    private lateinit var flow: Flow<Int>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +44,31 @@ class MainActivity : AppCompatActivity() {
         binding.fab.setOnClickListener { view ->
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
+        }
+
+        setupFlow()
+        setupClicks()
+    }
+
+    private fun setupFlow() {
+        flow = flow {
+            Log.d(TAG, "Start flow")
+            (0..10).forEach {
+                delay(500)
+                Log.d(TAG, "Emitting $it")
+                emit(it)
+            }
+            Log.d(TAG, "End flow")
+        }.flowOn(Dispatchers.Default)
+    }
+
+    private fun setupClicks() {
+        binding.fab.setOnClickListener {
+            CoroutineScope(Dispatchers.Main).launch {
+                flow.collect {
+                    Log.d(TAG, "Collecting $it")
+                }
+            }
         }
     }
 
